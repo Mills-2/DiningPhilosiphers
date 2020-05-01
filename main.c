@@ -1,59 +1,49 @@
-#include <stdio.h>
-#include <pthread.h>
-#include <stdlib.h>
-#include <unistd.h>
+/**Solution to dining philosophers using POSIX mutexes and condition varaibles.*/
 
-#define NO_OF_PHILOSOPHERS 5
-pthread_t philosophers[NO_OF_PHILOSOPHERS];
-pthread_mutex_t mutex_forks = PTHREAD_MUTEX_INITIALIZER;
+#include "pthread.h"
+#include &lt; stdio.h & gt;
+#include "dp.h"
 
-int forks[NO_OF_PHILOSOPHERS];
+pthread_t tid[NUMBER];
+
+/**
+ * Initialize all relevant data structures and
+ * synchronization objects.
+ */
 void init()
 {
 	int i;
-	for (i = 0; i < NO_OF_PHILOSOPHERS; i++)
-		forks[i] = 0;
-}
-void philosopher(int i)
-{
-	int right = i;
-	int left = (i - 1 == -1) ? NO_OF_PHILOSOPHERS - 1 : (i - 1);
-	int locked;
-	while (1)
+
+	for (i = 0; i & lt; NUMBER; i++)
 	{
-		locked = 0;
-		while (!locked)
-		{
-			pthread_mutex_lock(&mutex_forks);
-			if (forks[right] || forks[left])
-			{
-				pthread_mutex_unlock(&mutex_forks); // give up the forks unless you can take both at once.
-				printf("Philosopher %d cannot take forks. Giving up and thinking.\n", i);
-				usleep(random() % 1000); // think.
-				continue;
-			}
-			forks[right] = 1; // take forks.
-			forks[left] = 1;
-			pthread_mutex_unlock(&mutex_forks);
-			locked = 1;
-		}
-		printf("Philosopher %d took both forks. Now eating :)\n", i);
-		usleep(random() % 500);
-		printf("Philosopher %d done with eating. Giving up forks.\n", i);
-		pthread_mutex_lock(&mutex_forks); // give up forks.
-		forks[right] = 0;
-		forks[left] = 0;
-		pthread_mutex_unlock(&mutex_forks);
-		usleep(random() % 1000);
+		state[i] = THINKING;
+		thread_id[i] = i;
+		pthread_cond_init(&amp; cond_vars[i], NULL);
+	}
+
+	pthread_mutex_init(&amp; mutex_lock, NULL);
+}
+
+void create_philosophers()
+{
+	int i;
+
+	for (i = 0; i & lt; NUMBER; i++)
+	{
+		pthread_create(&amp; tid[i], 0, philosopher, (void *)&amp; thread_id[i]);
 	}
 }
-int main()
+
+int main(void)
 {
-	init();
 	int i;
-	for (i = 0; i < NO_OF_PHILOSOPHERS; i++)
-		pthread_create(&philosophers[i], NULL, philosopher, (void *)i);
-	for (i = 0; i < NO_OF_PHILOSOPHERS; i++)
-		pthread_join(philosophers[i], NULL);
+
+	init();
+
+	create_philosophers();
+
+	for (i = 0; i & lt; NUMBER; i++)
+		pthread_join(tid[i], NULL);
+
 	return 0;
 }
